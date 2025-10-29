@@ -12,7 +12,7 @@ const App: React.FC = () => {
       <BrowserRouter>
         <div className="min-h-screen bg-[var(--background)]">
           <Navbar />
-          <main className="container mx-auto px-4 py-6">
+          <main className="container mx-auto px-4 pt-28 pb-6">
             <AppRoutes />
           </main>
 

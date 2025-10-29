@@ -132,11 +132,26 @@ const AdvancedLeaderboard: React.FC<LeaderboardProps> = ({
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
         <div>
-          <h2 className="text-4xl font-bold gradient-text flex items-center">
+          <h2 
+            className="gradient-text flex items-center"
+            style={{
+              fontFamily: '"Edu NSW ACT Foundation", cursive',
+              fontSize: 'clamp(32px, 5vw, 50px)',
+              fontWeight: 500,
+              lineHeight: '1.2',
+            }}
+          >
             <Trophy className="w-10 h-10 mr-3 text-[var(--gold)]" />
             Leaderboard
           </h2>
-          <p className="text-[var(--text-secondary)] mt-2">
+          <p 
+            className="text-[var(--text-secondary)] mt-2"
+            style={{
+              fontFamily: '"Inter", sans-serif',
+              fontSize: '16px',
+              lineHeight: '1.6',
+            }}
+          >
             Compete with the best players and climb the ranks
           </p>
         </div>

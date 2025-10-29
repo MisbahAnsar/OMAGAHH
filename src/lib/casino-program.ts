@@ -6,11 +6,12 @@ import {
   LAMPORTS_PER_SOL,
   TransactionInstruction,
 } from '@solana/web3.js';
-import { AnchorProvider, Program, web3, BN, Idl } from '@project-serum/anchor';
+import { AnchorProvider, Program, web3, BN, Idl } from '@coral-xyz/anchor';
 import { WalletContextState } from '@solana/wallet-adapter-react';
+import CasinoIDL from '../idl/casino.json';
 
-// Program ID (will be generated after deployment)
-export const CASINO_PROGRAM_ID = new PublicKey('CasinoProgram11111111111111111111111111111');
+// Deployed Program ID on Devnet
+export const CASINO_PROGRAM_ID = new PublicKey('8zD2fbTQHQRkdQrNs1f7Sd1ApZaUqN5c9GGZ6tSSy62M');
 
 // PDAs
 export const getCasinoPDA = () => {
@@ -29,108 +30,8 @@ export const getVaultPDA = () => {
   return pda;
 };
 
-// IDL for the program
-const CASINO_IDL: Idl = {
-  version: '0.1.0',
-  name: 'casino',
-  instructions: [
-    {
-      name: 'initialize',
-      accounts: [
-        { name: 'casino', isMut: true, isSigner: false },
-        { name: 'vault', isMut: true, isSigner: false },
-        { name: 'authority', isMut: true, isSigner: true },
-        { name: 'systemProgram', isMut: false, isSigner: false },
-      ],
-      args: [],
-    },
-    {
-      name: 'playCoinFlip',
-      accounts: [
-        { name: 'casino', isMut: true, isSigner: false },
-        { name: 'vault', isMut: true, isSigner: false },
-        { name: 'player', isMut: true, isSigner: true },
-        { name: 'systemProgram', isMut: false, isSigner: false },
-      ],
-      args: [
-        { name: 'betAmount', type: 'u64' },
-        { name: 'prediction', type: 'u8' },
-      ],
-    },
-    {
-      name: 'playDiceRoll',
-      accounts: [
-        { name: 'casino', isMut: true, isSigner: false },
-        { name: 'vault', isMut: true, isSigner: false },
-        { name: 'player', isMut: true, isSigner: true },
-        { name: 'systemProgram', isMut: false, isSigner: false },
-      ],
-      args: [
-        { name: 'betAmount', type: 'u64' },
-        { name: 'prediction', type: 'u8' },
-        { name: 'isOver', type: 'bool' },
-      ],
-    },
-    {
-      name: 'playSlots',
-      accounts: [
-        { name: 'casino', isMut: true, isSigner: false },
-        { name: 'vault', isMut: true, isSigner: false },
-        { name: 'player', isMut: true, isSigner: true },
-        { name: 'systemProgram', isMut: false, isSigner: false },
-      ],
-      args: [{ name: 'betAmount', type: 'u64' }],
-    },
-    {
-      name: 'fundVault',
-      accounts: [
-        { name: 'casino', isMut: false, isSigner: false },
-        { name: 'vault', isMut: true, isSigner: false },
-        { name: 'authority', isMut: true, isSigner: true },
-        { name: 'systemProgram', isMut: false, isSigner: false },
-      ],
-      args: [{ name: 'amount', type: 'u64' }],
-    },
-  ],
-  accounts: [
-    {
-      name: 'Casino',
-      type: {
-        kind: 'struct',
-        fields: [
-          { name: 'authority', type: 'publicKey' },
-          { name: 'vaultBump', type: 'u8' },
-          { name: 'totalWagered', type: 'u64' },
-          { name: 'totalPayout', type: 'u64' },
-          { name: 'houseEdge', type: 'u16' },
-          { name: 'minBet', type: 'u64' },
-          { name: 'maxBet', type: 'u64' },
-        ],
-      },
-    },
-  ],
-  events: [
-    {
-      name: 'GamePlayed',
-      fields: [
-        { name: 'player', type: 'publicKey', index: false },
-        { name: 'gameType', type: 'u8', index: false },
-        { name: 'betAmount', type: 'u64', index: false },
-        { name: 'prediction', type: 'u8', index: false },
-        { name: 'result', type: 'u8', index: false },
-        { name: 'won', type: 'bool', index: false },
-        { name: 'payout', type: 'u64', index: false },
-        { name: 'timestamp', type: 'i64', index: false },
-      ],
-    },
-  ],
-  errors: [
-    { code: 6000, name: 'BetTooLow', msg: 'Bet amount is too low' },
-    { code: 6001, name: 'BetTooHigh', msg: 'Bet amount is too high' },
-    { code: 6002, name: 'InvalidPrediction', msg: 'Invalid prediction' },
-    { code: 6003, name: 'InvalidBetAmount', msg: 'Invalid bet amount' },
-  ],
-};
+// Use the deployed program's IDL with proper type casting
+const CASINO_IDL = CasinoIDL as any as Idl;
 
 // Casino Program Client
 export class CasinoProgram {
@@ -142,13 +43,27 @@ export class CasinoProgram {
     this.connection = connection;
     this.wallet = wallet;
 
-    const provider = new AnchorProvider(
-      connection,
-      wallet as any,
-      { commitment: 'confirmed' }
-    );
+    try {
+      if (!wallet.publicKey) {
+        throw new Error('Wallet not connected. Please connect your wallet first.');
+      }
 
-    this.program = new Program(CASINO_IDL, CASINO_PROGRAM_ID, provider);
+      if (!wallet.signTransaction) {
+        throw new Error('Wallet does not support signing transactions.');
+      }
+
+      const provider = new AnchorProvider(
+        connection,
+        wallet as any,
+        { commitment: 'confirmed' }
+      );
+
+      this.program = new Program(CASINO_IDL as Idl, CASINO_PROGRAM_ID, provider);
+    } catch (error: any) {
+      console.error('Error initializing Casino Program:', error);
+      // Throw the actual error message instead of generic one
+      throw error;
+    }
   }
 
   // Play Coin Flip
@@ -216,15 +131,46 @@ export class CasinoProgram {
   // Get Casino State
   async getCasinoState() {
     const casinoPDA = getCasinoPDA();
-    const casino = await this.program.account.casino.fetch(casinoPDA);
-    return {
-      authority: casino.authority,
-      totalWagered: casino.totalWagered.toNumber() / LAMPORTS_PER_SOL,
-      totalPayout: casino.totalPayout.toNumber() / LAMPORTS_PER_SOL,
-      houseEdge: casino.houseEdge,
-      minBet: casino.minBet.toNumber() / LAMPORTS_PER_SOL,
-      maxBet: casino.maxBet.toNumber() / LAMPORTS_PER_SOL,
-    };
+    try {
+      const casino = await this.program.account.casino.fetch(casinoPDA);
+      return {
+        authority: casino.authority,
+        totalWagered: (casino.totalWagered as any).toNumber() / LAMPORTS_PER_SOL,
+        totalPayout: (casino.totalPayout as any).toNumber() / LAMPORTS_PER_SOL,
+        houseEdge: casino.houseEdge,
+        minBet: (casino.minBet as any).toNumber() / LAMPORTS_PER_SOL,
+        maxBet: (casino.maxBet as any).toNumber() / LAMPORTS_PER_SOL,
+      };
+    } catch (error) {
+      console.error('Error fetching casino state:', error);
+      throw new Error('Casino not initialized. Please initialize first.');
+    }
+  }
+
+  // Get Vault Balance
+  async getVaultBalance(): Promise<number> {
+    const vaultPDA = getVaultPDA();
+    const balance = await this.connection.getBalance(vaultPDA);
+    return balance / LAMPORTS_PER_SOL;
+  }
+
+  // Fund Vault (admin only)
+  async fundVault(amount: number): Promise<string> {
+    if (!this.wallet.publicKey) throw new Error('Wallet not connected');
+
+    const amountLamports = new BN(amount * LAMPORTS_PER_SOL);
+
+    const tx = await this.program.methods
+      .fundVault(amountLamports)
+      .accounts({
+        casino: getCasinoPDA(),
+        vault: getVaultPDA(),
+        authority: this.wallet.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .rpc();
+
+    return tx;
   }
 
   // Listen for game events

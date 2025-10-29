@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
-import { Coins, Dices, PlusCircle, Settings, LayoutDashboard, Menu, X, Trophy } from 'lucide-react';
+import { Coins, Dices, PlusCircle, LayoutDashboard, Menu, X, Trophy } from 'lucide-react';
 import { Button } from './ui/button';
 import { useBlockchain } from '../hooks/useBlockchain';
 
@@ -18,29 +18,31 @@ const Navbar = () => {
     { to: '/', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/games', label: 'Games', icon: Dices },
     { to: '/create', label: 'Create Casino', icon: PlusCircle },
-    { to: '/about', label: 'Leaderboard', icon: Trophy },
+    { to: '/about', label: 'About', icon: Trophy },
   ];
 
   return (
-    <nav className="sticky top-0 z-50 backdrop-blur-xl bg-[var(--background)]/80 border-b border-[var(--border)] shadow-lg">
-      <div className="container mx-auto px-4 lg:px-6">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link to="/" className="flex items-center space-x-3 group">
-            <div className="relative">
-              <Coins className="w-8 h-8 text-[var(--accent)] group-hover:rotate-180 transition-transform duration-500" />
-              <div className="absolute inset-0 bg-[var(--accent)] blur-xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xl font-bold bg-gradient-to-r from-white via-[var(--accent)] to-white bg-clip-text text-transparent">
-                SolanaCasino
+    <div className="fixed top-6 left-0 right-0 z-50 px-4">
+      <nav className="max-w-7xl mx-auto backdrop-blur-xl bg-[var(--background)]/80 border border-[var(--border)] rounded-2xl shadow-2xl">
+        <div className="px-4 lg:px-6">
+          <div className="grid grid-cols-3 items-center h-16 gap-4">
+            {/* Logo - Left */}
+            <Link to="/" className="flex items-center group">
+              <span 
+                className="bg-gradient-to-r from-white via-[var(--accent)] to-white bg-clip-text text-transparent"
+                style={{
+                  fontFamily: '"Edu NSW ACT Foundation", cursive',
+                  fontSize: '28px',
+                  fontWeight: 500,
+                  lineHeight: '1.2',
+                }}
+              >
+                OMAGAHH
               </span>
-              <span className="text-xs text-[var(--text-secondary)] -mt-1">Play & Win SOL</span>
-            </div>
-          </Link>
+            </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-2">
+          {/* Desktop Navigation - Center */}
+          <div className="hidden md:flex items-center justify-center space-x-1">
             {navLinks.map((link) => {
               const Icon = link.icon;
               const active = isActive(link.to);
@@ -48,36 +50,31 @@ const Navbar = () => {
                 <Link
                   key={link.to}
                   to={link.to}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all ${
+                  className={`flex items-center space-x-1.5 px-3 py-2 rounded-lg transition-all ${
                     active
                       ? 'bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/30 shadow-[0_0_15px_var(--accent-glow)]'
                       : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--card)]'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
-                  <span className="font-medium">{link.label}</span>
+                  <span className="font-medium text-sm whitespace-nowrap">{link.label}</span>
                 </Link>
               );
             })}
           </div>
 
           {/* Right Section */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center justify-end space-x-2">
             {/* Balance Display */}
             {connected && balance !== null && (
-              <div className="hidden lg:flex items-center space-x-2 px-4 py-2 bg-[var(--card)] border border-[var(--border)] rounded-lg">
+              <div className="hidden lg:flex items-center space-x-2 px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-lg">
                 <Coins className="w-4 h-4 text-[var(--accent)]" />
                 <span className="text-sm font-semibold">{balance.toFixed(4)} SOL</span>
               </div>
             )}
 
-            {/* Settings Button */}
-            <Button variant="ghost" size="icon" className="hidden md:flex">
-              <Settings className="w-5 h-5" />
-            </Button>
-
             {/* Wallet Button */}
-            <WalletMultiButton className="!bg-gradient-to-r !from-[var(--accent)] !to-[var(--secondary)] !text-black hover:!shadow-[0_0_20px_var(--accent-glow)] !transition-all !font-semibold !rounded-lg !h-10" />
+            <WalletMultiButton className="!bg-gradient-to-r !from-[var(--accent)] !to-[var(--secondary)] !text-black hover:!shadow-[0_0_20px_var(--accent-glow)] !transition-all !font-semibold !rounded-lg !h-10 !text-sm" />
 
             {/* Mobile Menu Button */}
             <Button
@@ -88,12 +85,12 @@ const Navbar = () => {
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </Button>
+            </div>
           </div>
-        </div>
 
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden py-4 space-y-2 border-t border-[var(--border)] animate-slide-up">
+          {/* Mobile Menu */}
+          {mobileMenuOpen && (
+            <div className="md:hidden py-4 space-y-2 border-t border-[var(--border)] animate-slide-up">
             {navLinks.map((link) => {
               const Icon = link.icon;
               const active = isActive(link.to);
@@ -121,11 +118,12 @@ const Navbar = () => {
                   <span className="text-sm font-semibold">{balance.toFixed(4)} SOL</span>
                 </div>
               </div>
-            )}
-          </div>
-        )}
-      </div>
-    </nav>
+              )}
+            </div>
+          )}
+        </div>
+      </nav>
+    </div>
   );
 };
 

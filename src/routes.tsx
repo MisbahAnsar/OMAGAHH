@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import CasinoCreator from './pages/CasinoCreator';
 import About from './pages/About';
+import InitializeCasino from './pages/InitializeCasino';
 import StyleTest from './components/test/StyleTest';
 import UltraCoinFlip from './components/games/UltraCoinFlip';
 import UltraDiceRoll from './components/games/UltraDiceRoll';
@@ -30,6 +31,9 @@ const AppRoutes: React.FC = () => {
       {/* Analytics & Leaderboard */}
       <Route path="/analytics" element={<EnhancedGameStats />} />
       <Route path="/leaderboard" element={<AdvancedLeaderboard />} />
+
+      {/* Admin */}
+      <Route path="/initialize" element={<InitializeCasino />} />
 
       {/* Style Test (for development) */}
       <Route path="/style-test" element={<StyleTest />} />

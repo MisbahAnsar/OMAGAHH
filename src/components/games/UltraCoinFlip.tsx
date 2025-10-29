@@ -118,9 +118,9 @@ const UltraCoinFlip: React.FC = () => {
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
+          className="text-center mb-6"
         >
-          <div className="flex items-center justify-center mb-4">
+          <div className="flex items-center justify-center mb-3">
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
@@ -128,8 +128,16 @@ const UltraCoinFlip: React.FC = () => {
             >
               <Coins className="w-12 h-12 text-[var(--accent)]" />
             </motion.div>
-            <h1 className="text-6xl font-black gradient-text">
-              ULTRA COIN FLIP
+            <h1 
+              className="gradient-text"
+              style={{
+                fontFamily: '"Edu NSW ACT Foundation", cursive',
+                fontSize: 'clamp(40px, 7vw, 72px)',
+                fontWeight: 500,
+                lineHeight: '1.1',
+              }}
+            >
+              Ultra Coin Flip
             </h1>
             <motion.div
               animate={{ rotate: -360 }}
@@ -140,7 +148,7 @@ const UltraCoinFlip: React.FC = () => {
             </motion.div>
           </div>
           
-          <p className="text-xl text-[var(--text-secondary)] max-w-3xl mx-auto">
+          <p className="text-lg text-[var(--text-secondary)] max-w-2xl mx-auto">
             Experience the most advanced coin flip game with stunning 3D physics, 
             particle effects, and real-time multiplayer action!
           </p>
@@ -168,13 +176,13 @@ const UltraCoinFlip: React.FC = () => {
             <motion.div 
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="glass-effect rounded-3xl p-8 relative overflow-hidden"
+              className="glass-effect rounded-3xl p-6 relative overflow-hidden"
             >
               {/* Particle Container */}
               <div ref={particlesRef} className="absolute inset-0 pointer-events-none z-10"></div>
 
               {/* 3D Coin */}
-              <div className="flex justify-center mb-12 relative">
+              <div className="flex justify-center mb-8 relative">
                 <motion.div
                   ref={coinRef}
                   className="relative w-48 h-48 perspective-1000"
@@ -212,9 +220,9 @@ const UltraCoinFlip: React.FC = () => {
               </div>
 
               {/* Game Controls */}
-              <div className="space-y-8">
+              <div className="space-y-6">
                 {/* Bet Amount */}
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <label className="block text-lg font-semibold text-[var(--text-primary)]">
                     Bet Amount (SOL)
                   </label>
@@ -223,7 +231,7 @@ const UltraCoinFlip: React.FC = () => {
                       type="number"
                       value={state.betAmount}
                       onChange={(e) => setState(prev => ({ ...prev, betAmount: e.target.value }))}
-                      className="w-full px-6 py-4 text-2xl font-bold bg-[var(--card)] border-2 border-[var(--border)] rounded-2xl focus:border-[var(--accent)] focus:outline-none transition-all duration-300 text-center"
+                      className="w-full px-5 py-3 text-xl font-bold bg-[var(--card)] border-2 border-[var(--border)] rounded-xl focus:border-[var(--accent)] focus:outline-none transition-all duration-300 text-center"
                       min="0.01"
                       step="0.01"
                       disabled={gameState.isPlaying}
@@ -241,7 +249,7 @@ const UltraCoinFlip: React.FC = () => {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => setState(prev => ({ ...prev, betAmount: amount.toString() }))}
-                        className="py-3 px-4 rounded-xl bg-[var(--card-hover)] hover:bg-[var(--accent)] transition-all duration-300 font-bold"
+                        className="py-2 px-3 rounded-lg bg-[var(--card-hover)] hover:bg-[var(--accent)] transition-all duration-300 font-semibold text-sm"
                         disabled={gameState.isPlaying}
                       >
                         {amount}
@@ -251,7 +259,7 @@ const UltraCoinFlip: React.FC = () => {
                 </div>
 
                 {/* Prediction Selection */}
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <label className="block text-lg font-semibold text-[var(--text-primary)]">
                     Choose Your Side
                   </label>
@@ -260,7 +268,7 @@ const UltraCoinFlip: React.FC = () => {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setState(prev => ({ ...prev, prediction: 'heads' }))}
-                      className={`relative py-8 px-6 rounded-2xl font-bold text-xl transition-all duration-300 overflow-hidden ${
+                      className={`relative py-6 px-4 rounded-xl font-bold text-lg transition-all duration-300 overflow-hidden ${
                         state.prediction === 'heads'
                           ? 'bg-gradient-to-br from-[var(--gold)] to-[var(--gold-glow)] text-black shadow-2xl glow-effect'
                           : 'bg-[var(--card-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -283,7 +291,7 @@ const UltraCoinFlip: React.FC = () => {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setState(prev => ({ ...prev, prediction: 'tails' }))}
-                      className={`relative py-8 px-6 rounded-2xl font-bold text-xl transition-all duration-300 overflow-hidden ${
+                      className={`relative py-6 px-4 rounded-xl font-bold text-lg transition-all duration-300 overflow-hidden ${
                         state.prediction === 'tails'
                           ? 'bg-gradient-to-br from-[var(--silver)] to-white text-black shadow-2xl glow-effect'
                           : 'bg-[var(--card-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -310,7 +318,7 @@ const UltraCoinFlip: React.FC = () => {
                   whileTap={{ scale: 0.98 }}
                   onClick={handleFlip}
                   disabled={!isConnected || gameState.isPlaying}
-                  className="w-full py-6 px-8 rounded-2xl bg-gradient-to-r from-[var(--accent)] to-[var(--secondary)] hover:from-[var(--accent-hover)] hover:to-[var(--secondary-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-2xl transition-all duration-300 shadow-2xl glow-effect relative overflow-hidden"
+                  className="w-full py-4 px-6 rounded-xl bg-gradient-to-r from-[var(--accent)] to-[var(--secondary)] hover:from-[var(--accent-hover)] hover:to-[var(--secondary-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-xl transition-all duration-300 shadow-2xl glow-effect relative overflow-hidden"
                 >
                   {gameState.isPlaying ? (
                     <div className="flex items-center justify-center space-x-3">

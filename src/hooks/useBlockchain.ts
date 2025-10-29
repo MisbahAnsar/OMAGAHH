@@ -11,7 +11,9 @@ import {
 } from '@solana/web3.js';
 import { create } from 'zustand';
 import { toast } from 'react-hot-toast';
-import { CasinoProgram } from '../lib/casino-program';
+import { CasinoProgram, CASINO_PROGRAM_ID } from '../lib/casino-program';
+import { AnchorProvider, Program } from '@coral-xyz/anchor';
+import CasinoIDL from '../idl/casino.json';
 
 // Fee recipient wallet address (receives 1% of all transactions)
 const FEE_RECIPIENT_ADDRESS = 'GeG6GYJCB4jRnNkztjyd29F6NgBVr1vJ83bwrxJD1S67';
@@ -72,7 +74,12 @@ export const useBlockchain = () => {
   // Initialize casino program client
   const casinoProgram = useMemo(() => {
     if (!publicKey || !signTransaction) return null;
-    return new CasinoProgram(connection, wallet);
+    try {
+      return new CasinoProgram(connection, wallet);
+    } catch (error) {
+      console.error('Failed to create Casino Program instance:', error);
+      return null;
+    }
   }, [connection, wallet, publicKey, signTransaction]);
 
   // Memoized connection status
@@ -89,7 +96,7 @@ export const useBlockchain = () => {
         { commitment: 'confirmed' }
       );
 
-      return new Program(CasinoIDL, CASINO_PROGRAM_ID, provider);
+      return new Program(CasinoIDL as any, CASINO_PROGRAM_ID, provider);
     } catch (error) {
       console.error('Failed to create program instance:', error);
       return null;

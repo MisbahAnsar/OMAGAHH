@@ -204,8 +204,16 @@ const UltraSlots: React.FC = () => {
             >
               <Sparkles className="w-12 h-12 text-[var(--gold)]" />
             </motion.div>
-            <h1 className="text-6xl font-black gradient-text">
-              ULTRA SLOTS
+            <h1 
+              className="gradient-text"
+              style={{
+                fontFamily: '"Edu NSW ACT Foundation", cursive',
+                fontSize: 'clamp(40px, 7vw, 72px)',
+                fontWeight: 500,
+                lineHeight: '1.1',
+              }}
+            >
+              Ultra Slots
             </h1>
             <motion.div
               animate={{ rotate: [360, 0] }}

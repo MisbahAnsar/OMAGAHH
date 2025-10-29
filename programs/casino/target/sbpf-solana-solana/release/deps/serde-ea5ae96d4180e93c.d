@@ -1,0 +1,14 @@
+/home/misbah/project/solsgames/programs/casino/target/sbpf-solana-solana/release/deps/libserde-ea5ae96d4180e93c.rmeta: /home/misbah/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/lib.rs /home/misbah/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/integer128.rs /home/misbah/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/private/mod.rs /home/misbah/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/private/de.rs /home/misbah/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/private/ser.rs /home/misbah/project/solsgames/programs/casino/target/sbpf-solana-solana/release/build/serde-cdb4f237f351a528/out/private.rs
+
+/home/misbah/project/solsgames/programs/casino/target/sbpf-solana-solana/release/deps/libserde-ea5ae96d4180e93c.rlib: /home/misbah/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/lib.rs /home/misbah/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/integer128.rs /home/misbah/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/private/mod.rs /home/misbah/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/private/de.rs /home/misbah/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/private/ser.rs /home/misbah/project/solsgames/programs/casino/target/sbpf-solana-solana/release/build/serde-cdb4f237f351a528/out/private.rs
+
+/home/misbah/project/solsgames/programs/casino/target/sbpf-solana-solana/release/deps/serde-ea5ae96d4180e93c.d: /home/misbah/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/lib.rs /home/misbah/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/integer128.rs /home/misbah/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/private/mod.rs /home/misbah/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/private/de.rs /home/misbah/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/private/ser.rs /home/misbah/project/solsgames/programs/casino/target/sbpf-solana-solana/release/build/serde-cdb4f237f351a528/out/private.rs
+
+/home/misbah/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/lib.rs:
+/home/misbah/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/integer128.rs:
+/home/misbah/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/private/mod.rs:
+/home/misbah/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/private/de.rs:
+/home/misbah/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/private/ser.rs:
+/home/misbah/project/solsgames/programs/casino/target/sbpf-solana-solana/release/build/serde-cdb4f237f351a528/out/private.rs:
+
+# env-dep:OUT_DIR=/home/misbah/project/solsgames/programs/casino/target/sbpf-solana-solana/release/build/serde-cdb4f237f351a528/out

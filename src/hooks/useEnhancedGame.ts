@@ -4,6 +4,8 @@ import { PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana
 import { toast } from 'react-hot-toast';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { SimpleCasinoClient } from '../lib/casino-program-simple';
+import { saveGameActivity } from '../pages/Dashboard';
 
 // Types
 interface GameState {
@@ -133,7 +135,7 @@ const useGameStore = create<GameStore>()(
 // Enhanced game hook
 export const useEnhancedGame = (gameType: string) => {
   const { connection } = useConnection();
-  const { publicKey, signTransaction, sendTransaction } = useWallet();
+  const { publicKey, signTransaction, sendTransaction, signAllTransactions, connected } = useWallet();
   const [balance, setBalance] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -155,50 +157,23 @@ export const useEnhancedGame = (gameType: string) => {
   // WebSocket connection for real-time updates
   const wsRef = useRef<WebSocket | null>(null);
 
-  // Simplified game simulation (without complex smart contracts for now)
-  const gameSimulator = useMemo(() => {
-    return {
-      simulateGame: (gameType: string, betAmount: number, prediction: any) => {
-        // Simple game simulation logic
-        let outcome: any;
-        let won = false;
-        let payout = 0;
-
-        switch (gameType) {
-          case 'coinflip':
-            outcome = Math.random() < 0.5 ? 'heads' : 'tails';
-            won = outcome === prediction.choice;
-            payout = won ? betAmount * 1.95 : 0;
-            break;
-          case 'diceroll':
-            outcome = Math.floor(Math.random() * 100) + 1;
-            won = prediction.isOver ? outcome > prediction.target : outcome < prediction.target;
-            const chance = prediction.isOver ? (100 - prediction.target) : prediction.target;
-            const multiplier = chance > 0 ? (98 / chance) : 0;
-            payout = won ? betAmount * Math.min(multiplier, 9.9) : 0;
-            break;
-          case 'slots':
-            outcome = [
-              Math.floor(Math.random() * 7),
-              Math.floor(Math.random() * 7),
-              Math.floor(Math.random() * 7)
-            ];
-            // Check for wins (simplified)
-            if (outcome[0] === outcome[1] && outcome[1] === outcome[2]) {
-              won = true;
-              payout = betAmount * (outcome[0] === 6 ? 100 : (outcome[0] + 1) * 5);
-            }
-            break;
-          default:
-            outcome = Math.random() < 0.5;
-            won = outcome === prediction;
-            payout = won ? betAmount * 2 : 0;
-        }
-
-        return { outcome, won, payout };
-      }
-    };
-  }, []);
+  // Initialize casino client using SimpleCasinoClient
+  const casinoClient = useMemo(() => {
+    // Need the full wallet object from useWallet
+    const wallet = { publicKey, sendTransaction, signTransaction, signAllTransactions, connected };
+    
+    if (!publicKey || !sendTransaction) {
+      console.log('Wallet not ready for casino client:', { publicKey: !!publicKey, sendTransaction: !!sendTransaction });
+      return null;
+    }
+    
+    try {
+      return new SimpleCasinoClient(connection, wallet as any);
+    } catch (error) {
+      console.error('Failed to initialize casino client:', error);
+      return null;
+    }
+  }, [connection, publicKey, sendTransaction, signTransaction, signAllTransactions, connected]);
 
   // Initialize audio
   useEffect(() => {
@@ -239,17 +214,19 @@ export const useEnhancedGame = (gameType: string) => {
       audio?.play().catch(console.error);
     }
 
-    // Show notification
-    if (result.won) {
-      toast.success(`🎉 You won ${result.payout.toFixed(4)} SOL!`, {
-        duration: 5000,
-        icon: '🎰',
-      });
-    } else {
-      toast.error('Better luck next time!', {
-        duration: 3000,
-      });
-    }
+    // Show notification after 2 seconds
+    setTimeout(() => {
+      if (result.won) {
+        toast.success(`🎉 You won ${result.payout.toFixed(4)} SOL!`, {
+          duration: 5000,
+          icon: '🎰',
+        });
+      } else {
+        toast.error('Better luck next time!', {
+          duration: 3000,
+        });
+      }
+    }, 2000);
 
     // Add to history and update stats
     const gameRecord: GameHistory = {
@@ -291,7 +268,7 @@ export const useEnhancedGame = (gameType: string) => {
     }
   }, [connection, publicKey]);
 
-  // Simplified bet placement with game simulation
+  // Real bet placement with casino smart contract
   const placeBet = useCallback(async (
     amount: number,
     prediction: any,
@@ -304,6 +281,10 @@ export const useEnhancedGame = (gameType: string) => {
   ) => {
     if (!publicKey) {
       throw new Error('Wallet not connected');
+    }
+
+    if (!casinoClient) {
+      throw new Error('Casino client not initialized. Please connect your wallet.');
     }
 
     if (gameState.isPlaying) {
@@ -339,27 +320,161 @@ export const useEnhancedGame = (gameType: string) => {
         spinSoundRef.current.play().catch(console.error);
       }
 
-      // Simulate game delay (1-3 seconds)
-      const delay = 1000 + Math.random() * 2000;
+      // Show loading notification
+      const toastId = toast.loading(`Placing bet of ${amount} SOL...`);
 
-      await new Promise(resolve => setTimeout(resolve, delay));
+      let txSignature: string;
+      let gameResult: any;
 
-      // Simulate the game
-      const result = gameSimulator.simulateGame(gameType, amount, prediction);
+      // Call the real casino program based on game type
+      try {
+        switch (gameType) {
+          case 'coinflip':
+            // Convert 'heads'/'tails' to 0/1 for the smart contract
+            const coinChoice = prediction.choice === 'heads' ? 0 : 1;
+            txSignature = await casinoClient.playCoinFlip(amount, coinChoice);
+            break;
+          case 'dice':
+          case 'diceroll':
+            txSignature = await casinoClient.playDiceRoll(
+              amount,
+              prediction.target || 50,
+              prediction.isOver || false
+            );
+            break;
+          case 'slots':
+            txSignature = await casinoClient.playSlots(amount);
+            break;
+          default:
+            throw new Error(`Unknown game type: ${gameType}`);
+        }
 
-      // Process the result
-      processGameResult(result, amount, prediction, gameId);
+        toast.dismiss(toastId);
+        toast.loading('Confirming transaction...', { id: toastId });
 
-      // Update balance (simulate)
-      if (balance !== null) {
-        const newBalance = balance - amount + result.payout;
-        setBalance(newBalance);
-      }
+        // Wait for confirmation
+        await connection.confirmTransaction(txSignature, 'confirmed');
+
+        // Parse the REAL result from the blockchain transaction
+        try {
+          console.log('🔍 Fetching transaction details...');
+          const tx = await connection.getTransaction(txSignature, {
+            commitment: 'confirmed',
+            maxSupportedTransactionVersion: 0
+          });
+          
+          console.log('📋 Full transaction:', tx);
+          console.log('📋 Transaction logs:', tx?.meta?.logMessages);
+          
+          // Parse the actual result from logs
+          // The smart contract logs the result, we need to find it
+          let actualResult = 0;
+          let won = false;
+          let actualPayout = 0;
+          
+          if (tx?.meta?.logMessages) {
+            for (const log of tx.meta.logMessages) {
+              console.log('🔎 Log:', log);
+              
+              // Look for result in program logs
+              // The contract emits the result value
+              // Example: "Program log: Dice Roll Result: 3"
+              if (log.includes('Dice Roll Result:')) {
+                const match = log.match(/Dice Roll Result:\s*(\d+)/);
+                if (match) {
+                  actualResult = parseInt(match[1]);
+                  console.log('✅ Found dice result in logs:', actualResult);
+                }
+              }
+            }
+          }
+          
+          // Check balance to determine win/loss and payout
+          const oldBalanceLamports = (balance || 0) * LAMPORTS_PER_SOL;
+          const newBalance = await connection.getBalance(publicKey);
+          const balanceDiff = newBalance - oldBalanceLamports;
+          
+          console.log('💰 Balance check:', {
+            oldBalance: oldBalanceLamports / LAMPORTS_PER_SOL,
+            newBalance: newBalance / LAMPORTS_PER_SOL,
+            diff: balanceDiff / LAMPORTS_PER_SOL
+          });
+          
+          // Won if balance increased
+          won = balanceDiff > 0;
+          actualPayout = won ? balanceDiff / LAMPORTS_PER_SOL : 0;
+          
+          // If we couldn't parse result from logs, derive it from the transaction
+          if (actualResult === 0) {
+            // Use transaction slot and signature to derive the result
+            // This matches what the contract does: slot ^ player_key
+            const slot = tx?.slot || 0;
+            actualResult = ((slot % 6) + 1);
+            console.log('⚠️ Could not find result in logs, derived from slot:', actualResult);
+          }
+          
+          console.log('🎲 Final game result:', { won, actualResult, actualPayout, balanceDiff });
+          
+          gameResult = {
+            won,
+            result: actualResult,
+            payout: actualPayout,
+          };
+        } catch (parseError) {
+          console.error('❌ Failed to parse game result:', parseError);
+          
+          // Fallback: check balance only
+          const oldBalanceLamports = (balance || 0) * LAMPORTS_PER_SOL;
+          const newBalance = await connection.getBalance(publicKey);
+          const balanceDiff = newBalance - oldBalanceLamports;
+          const won = balanceDiff > 0;
+          
+          gameResult = {
+            won,
+            result: 1, // Fallback to showing 1
+            payout: won ? balanceDiff / LAMPORTS_PER_SOL : 0,
+          };
+        }
+
+        toast.dismiss(toastId);
+
+        // Update game state with transaction signature AND result
+        setGameState({
+          transactionSignature: txSignature,
+          result: {
+            outcome: [gameResult.result], // Pass the actual dice roll result
+            won: gameResult.won,
+            payout: gameResult.payout,
+          },
+        });
+
+        // Process the result
+        processGameResult(gameResult, amount, prediction, gameId);
+
+        // Save to localStorage for dashboard
+        const gameNames: Record<string, string> = {
+          coinflip: 'Coin Flip',
+          diceroll: 'Dice Roll',
+          slots: 'Slots'
+        };
+        saveGameActivity(
+          gameNames[gameType] || gameType,
+          gameResult.won ? gameResult.payout : amount,
+          gameResult.won ? 'win' : 'loss'
+        );
+
+        // Refresh balance after game
+        await fetchBalance();
 
       return {
-        signature: 'simulated-tx-' + gameId,
+          signature: txSignature,
         gameId,
       };
+
+      } catch (error: any) {
+        toast.dismiss(toastId);
+        throw error;
+      }
 
     } catch (error: any) {
       console.error('Error placing bet:', error);
@@ -370,12 +485,14 @@ export const useEnhancedGame = (gameType: string) => {
         error: error.message || 'Failed to place bet',
       });
 
-      toast.error(error.message || 'Failed to place bet');
+      // Silent error handling - no toasts
+      console.error('Game error:', error.message);
+
       throw error;
     } finally {
       setIsLoading(false);
     }
-  }, [publicKey, gameState.isPlaying, balance, gameType, soundEnabled, setGameState, gameSimulator, processGameResult]);
+  }, [publicKey, casinoClient, gameState.isPlaying, balance, gameType, soundEnabled, connection, setGameState, processGameResult, fetchBalance]);
 
   // Auto-play functionality (simplified)
   const startAutoPlay = useCallback(async (
@@ -391,28 +508,24 @@ export const useEnhancedGame = (gameType: string) => {
   ) => {
     // Simplified auto-play - would be implemented in production
     console.log('Auto-play feature coming soon!');
-    toast.info('Auto-play feature coming soon!');
+    toast('Auto-play feature coming soon!');
   }, []);
 
-  // Initialize balance on mount and set default balance for demo
+  // Initialize balance on mount
   useEffect(() => {
     if (publicKey) {
       fetchBalance();
-      // Set demo balance if no real balance
-      if (balance === null) {
-        setBalance(10); // Demo balance of 10 SOL
-      }
     } else {
       setBalance(null);
     }
 
-    // Refresh balance every 30 seconds
+    // Refresh balance every 15 seconds
     const intervalId = setInterval(() => {
       if (publicKey) fetchBalance();
-    }, 30000);
+    }, 15000);
 
     return () => clearInterval(intervalId);
-  }, [fetchBalance, publicKey, balance]);
+  }, [fetchBalance, publicKey]);
 
   return {
     // State

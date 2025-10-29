@@ -40,7 +40,7 @@ interface WalletSettingsState {
 }
 
 export const useWalletSettings = create<WalletSettingsState>((set) => ({
-  network: 'mainnet',
+  network: 'devnet', // Changed to devnet where casino program is deployed
   setNetwork: (network) => set({ network }),
   autoConnect: true,
   setAutoConnect: (autoConnect) => set({ autoConnect })
@@ -48,7 +48,8 @@ export const useWalletSettings = create<WalletSettingsState>((set) => ({
 
 const WalletProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const { network, autoConnect } = useWalletSettings();
-  const endpoint = NETWORKS[network as keyof typeof NETWORKS]?.endpoint || NETWORKS.mainnet.endpoint;
+  // Default to devnet where the casino program is deployed
+  const endpoint = NETWORKS[network as keyof typeof NETWORKS]?.endpoint || NETWORKS.devnet.endpoint;
 
   // Initialize Phantom wallet
   const wallets = useMemo(() => [

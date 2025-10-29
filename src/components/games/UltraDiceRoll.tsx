@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
   Dice1, Dice2, Dice3, Dice4, Dice5, Dice6,
   Target, TrendingUp, Zap, Settings, History,
-  Volume2, VolumeX, Trophy, Star, Flame
+  Volume2, VolumeX, Flame
 } from 'lucide-react';
 import { useEnhancedGame } from '../../hooks/useEnhancedGame';
 
@@ -22,12 +22,12 @@ const DiceIcons = [Dice1, Dice2, Dice3, Dice4, Dice5, Dice6];
 const UltraDiceRoll: React.FC = () => {
   const [state, setState] = useState<DiceState>({
     betAmount: '0.1',
-    targetNumber: 50,
+    targetNumber: 3, // Dice face 1-6
     isOver: true,
     isRolling: false,
     diceValue: 1,
     multiplier: 1.98,
-    winChance: 49.5,
+    winChance: 50,
   });
 
   const {
@@ -43,10 +43,13 @@ const UltraDiceRoll: React.FC = () => {
 
   const diceRef = useRef<HTMLDivElement>(null);
 
-  // Calculate multiplier and win chance based on target
+  // Calculate multiplier and win chance based on dice face (1-6)
   useEffect(() => {
-    const chance = state.isOver ? (100 - state.targetNumber) : state.targetNumber;
-    const multiplier = chance > 0 ? (98 / chance) : 0;
+    // For dice: if "over 3", win faces are 4,5,6 (3 faces out of 6)
+    // If "under 3", win faces are 1,2 (2 faces out of 6)
+    const winningFaces = state.isOver ? (6 - state.targetNumber) : (state.targetNumber - 1);
+    const chance = (winningFaces / 6) * 100; // Convert to percentage
+    const multiplier = chance > 0 ? (95 / chance) : 0; // 5% house edge
     
     setState(prev => ({
       ...prev,
@@ -59,10 +62,22 @@ const UltraDiceRoll: React.FC = () => {
   const handleRoll = useCallback(async () => {
     if (!isConnected || gameState.isPlaying) return;
 
-    setState(prev => ({ ...prev, isRolling: true }));
-
     try {
-      // Animate dice rolling
+      const prediction = {
+        target: state.targetNumber,
+        isOver: state.isOver
+      };
+
+      console.log('🎲 Placing bet...');
+      
+      // Place bet first (this shows the transaction approval)
+      await placeBet(parseFloat(state.betAmount), prediction);
+      
+      console.log('✅ Bet placed! Starting dice animation...');
+      
+      // NOW animate the dice rolling AFTER transaction confirms
+      setState(prev => ({ ...prev, isRolling: true }));
+      
       const rollDuration = 2000;
       const rollInterval = 100;
       let currentTime = 0;
@@ -70,45 +85,47 @@ const UltraDiceRoll: React.FC = () => {
       const rollAnimation = setInterval(() => {
         setState(prev => ({ 
           ...prev, 
-          diceValue: Math.floor(Math.random() * 100) + 1 
+          diceValue: Math.floor(Math.random() * 6) + 1 // Temporary animation
         }));
         
         currentTime += rollInterval;
         if (currentTime >= rollDuration) {
           clearInterval(rollAnimation);
+          setState(prev => ({ ...prev, isRolling: false }));
         }
       }, rollInterval);
-
-      const prediction = {
-        target: state.targetNumber,
-        isOver: state.isOver
-      };
-
-      await placeBet(parseFloat(state.betAmount), prediction);
+      
     } catch (error) {
       console.error('Roll failed:', error);
-    } finally {
       setState(prev => ({ ...prev, isRolling: false }));
     }
   }, [isConnected, gameState.isPlaying, state.betAmount, state.targetNumber, state.isOver, placeBet]);
 
-  // Update dice value from game result
+  // Update dice value from game result (REAL blockchain result)
   useEffect(() => {
-    if (gameState.result?.outcome) {
+    if (gameState.result?.outcome && gameState.result.outcome[0]) {
+      const realDiceResult = gameState.result.outcome[0];
+      console.log('🎲 Setting dice to REAL blockchain result:', realDiceResult);
+      
       setState(prev => ({ 
         ...prev, 
-        diceValue: gameState.result.outcome[0] || 1 
+        diceValue: realDiceResult,
+        isRolling: false, // Stop rolling animation
       }));
     }
   }, [gameState.result]);
 
   const getDiceColor = (value: number) => {
-    if (value <= 10) return 'from-red-500 to-red-600';
-    if (value <= 25) return 'from-orange-500 to-orange-600';
-    if (value <= 50) return 'from-yellow-500 to-yellow-600';
-    if (value <= 75) return 'from-green-500 to-green-600';
-    if (value <= 90) return 'from-blue-500 to-blue-600';
-    return 'from-purple-500 to-purple-600';
+    // Map dice faces 1-6 to colors
+    const colors = [
+      'from-red-500 to-red-600',      // 1
+      'from-orange-500 to-orange-600', // 2
+      'from-yellow-500 to-yellow-600', // 3
+      'from-green-500 to-green-600',   // 4
+      'from-blue-500 to-blue-600',     // 5
+      'from-purple-500 to-purple-600', // 6
+    ];
+    return colors[Math.min(Math.max(value - 1, 0), 5)];
   };
 
   const isWinningRoll = (value: number) => {
@@ -128,9 +145,9 @@ const UltraDiceRoll: React.FC = () => {
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
+          className="text-center mb-6"
         >
-          <div className="flex items-center justify-center mb-4">
+          <div className="flex items-center justify-center mb-3">
             <motion.div
               animate={{ rotateX: [0, 360], rotateY: [0, 360] }}
               transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
@@ -138,8 +155,16 @@ const UltraDiceRoll: React.FC = () => {
             >
               <Dice6 className="w-12 h-12 text-[var(--accent)]" />
             </motion.div>
-            <h1 className="text-6xl font-black gradient-text">
-              ULTRA DICE ROLL
+            <h1 
+              className="gradient-text"
+              style={{
+                fontFamily: '"Edu NSW ACT Foundation", cursive',
+                fontSize: 'clamp(40px, 7vw, 72px)',
+                fontWeight: 500,
+                lineHeight: '1.1',
+              }}
+            >
+              Ultra Dice Roll
             </h1>
             <motion.div
               animate={{ rotateX: [360, 0], rotateY: [360, 0] }}
@@ -150,9 +175,9 @@ const UltraDiceRoll: React.FC = () => {
             </motion.div>
           </div>
           
-          <p className="text-xl text-[var(--text-secondary)] max-w-3xl mx-auto">
-            Roll the dice and predict if the result will be over or under your target number. 
-            Higher risk, higher rewards!
+          <p className="text-lg text-[var(--text-secondary)] max-w-2xl mx-auto">
+            Roll a 6-sided dice and predict if the result will be above or below your chosen number. 
+            Pick your dice face (1-6) and win big!
           </p>
         </motion.div>
 
@@ -162,10 +187,10 @@ const UltraDiceRoll: React.FC = () => {
             <motion.div 
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="glass-effect rounded-3xl p-8 relative overflow-hidden"
+              className="glass-effect rounded-3xl p-6 relative overflow-hidden"
             >
               {/* 3D Dice Display */}
-              <div className="flex justify-center mb-12">
+              <div className="flex justify-center mb-8">
                 <motion.div
                   ref={diceRef}
                   className="relative"
@@ -237,56 +262,60 @@ const UltraDiceRoll: React.FC = () => {
               </div>
 
               {/* Game Controls */}
-              <div className="space-y-8">
+              <div className="space-y-6">
                 {/* Bet Amount */}
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <label className="block text-lg font-semibold">Bet Amount (SOL)</label>
                   <input
                     type="number"
                     value={state.betAmount}
                     onChange={(e) => setState(prev => ({ ...prev, betAmount: e.target.value }))}
-                    className="w-full px-6 py-4 text-2xl font-bold bg-[var(--card)] border-2 border-[var(--border)] rounded-2xl focus:border-[var(--accent)] focus:outline-none transition-all text-center"
+                    className="w-full px-5 py-3 text-xl font-bold bg-[var(--card)] border-2 border-[var(--border)] rounded-xl focus:border-[var(--accent)] focus:outline-none transition-all text-center"
                     min="0.01"
                     step="0.01"
                     disabled={gameState.isPlaying}
                   />
                 </div>
 
-                {/* Target Number Slider */}
-                <div className="space-y-4">
+                {/* Dice Face Selector */}
+                <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <label className="text-lg font-semibold">Target Number</label>
-                    <div className="text-2xl font-bold text-[var(--accent)]">
+                    <label className="text-lg font-semibold">Choose Dice Face</label>
+                    <div className="text-3xl font-bold text-[var(--accent)] flex items-center">
+                      {React.createElement(DiceIcons[state.targetNumber - 1], { className: "w-8 h-8 mr-2" })}
                       {state.targetNumber}
                     </div>
                   </div>
                   
-                  <div className="relative">
-                    <input
-                      type="range"
-                      min="2"
-                      max="98"
-                      value={state.targetNumber}
-                      onChange={(e) => setState(prev => ({ ...prev, targetNumber: parseInt(e.target.value) }))}
-                      className="w-full h-3 bg-[var(--card)] rounded-lg appearance-none cursor-pointer slider"
-                      disabled={gameState.isPlaying}
-                    />
-                    <div 
-                      className="absolute top-0 h-3 bg-gradient-to-r from-[var(--accent)] to-[var(--secondary)] rounded-lg pointer-events-none"
-                      style={{ width: `${state.targetNumber}%` }}
-                    />
+                  <div className="grid grid-cols-6 gap-2">
+                    {[1, 2, 3, 4, 5, 6].map((face) => (
+                      <motion.button
+                        key={face}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setState(prev => ({ ...prev, targetNumber: face }))}
+                        disabled={gameState.isPlaying}
+                        className={`aspect-square rounded-xl flex items-center justify-center transition-all duration-300 ${
+                          state.targetNumber === face
+                            ? 'bg-gradient-to-br from-[var(--accent)] to-[var(--secondary)] text-white shadow-2xl scale-110'
+                            : 'bg-[var(--card-hover)] hover:bg-[var(--card)]'
+                        }`}
+                      >
+                        {React.createElement(DiceIcons[face - 1], { className: "w-8 h-8" })}
+                      </motion.button>
+                    ))}
                   </div>
                 </div>
 
-                {/* Over/Under Selection */}
-                <div className="space-y-4">
-                  <label className="block text-lg font-semibold">Prediction</label>
+                {/* Above/Below Selection */}
+                <div className="space-y-3">
+                  <label className="block text-lg font-semibold">Your Bet</label>
                   <div className="grid grid-cols-2 gap-4">
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setState(prev => ({ ...prev, isOver: false }))}
-                      className={`py-6 px-6 rounded-2xl font-bold text-xl transition-all duration-300 ${
+                      className={`py-4 px-4 rounded-xl font-bold text-lg transition-all duration-300 ${
                         !state.isOver
                           ? 'bg-gradient-to-br from-[var(--error)] to-[var(--error-glow)] text-white shadow-2xl'
                           : 'bg-[var(--card-hover)] text-[var(--text-secondary)]'
@@ -294,15 +323,18 @@ const UltraDiceRoll: React.FC = () => {
                       disabled={gameState.isPlaying}
                     >
                       <div className="text-3xl mb-2">📉</div>
-                      <div>UNDER {state.targetNumber}</div>
-                      <div className="text-sm opacity-75">{state.isOver ? 0 : state.winChance.toFixed(1)}% chance</div>
+                      <div>BELOW {state.targetNumber}</div>
+                      <div className="text-sm opacity-75 mt-2">
+                        Roll: {Array.from({length: state.targetNumber - 1}, (_, i) => i + 1).join(', ')}
+                      </div>
+                      <div className="text-sm font-bold mt-1">{!state.isOver ? state.winChance.toFixed(1) : 0}% chance</div>
                     </motion.button>
 
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setState(prev => ({ ...prev, isOver: true }))}
-                      className={`py-6 px-6 rounded-2xl font-bold text-xl transition-all duration-300 ${
+                      className={`py-4 px-4 rounded-xl font-bold text-lg transition-all duration-300 ${
                         state.isOver
                           ? 'bg-gradient-to-br from-[var(--success)] to-[var(--success-glow)] text-white shadow-2xl'
                           : 'bg-[var(--card-hover)] text-[var(--text-secondary)]'
@@ -310,30 +342,33 @@ const UltraDiceRoll: React.FC = () => {
                       disabled={gameState.isPlaying}
                     >
                       <div className="text-3xl mb-2">📈</div>
-                      <div>OVER {state.targetNumber}</div>
-                      <div className="text-sm opacity-75">{state.isOver ? state.winChance.toFixed(1) : 0}% chance</div>
+                      <div>ABOVE {state.targetNumber}</div>
+                      <div className="text-sm opacity-75 mt-2">
+                        Roll: {Array.from({length: 6 - state.targetNumber}, (_, i) => state.targetNumber + i + 1).join(', ')}
+                      </div>
+                      <div className="text-sm font-bold mt-1">{state.isOver ? state.winChance.toFixed(1) : 0}% chance</div>
                     </motion.button>
                   </div>
                 </div>
 
                 {/* Multiplier Display */}
-                <div className="bg-[var(--card-hover)] rounded-2xl p-6">
+                <div className="bg-[var(--card-hover)] rounded-xl p-4">
                   <div className="flex justify-between items-center">
                     <div>
-                      <div className="text-sm text-[var(--text-secondary)]">Multiplier</div>
-                      <div className="text-3xl font-bold text-[var(--accent)]">
+                      <div className="text-xs text-[var(--text-secondary)]">Multiplier</div>
+                      <div className="text-2xl font-bold text-[var(--accent)]">
                         {state.multiplier.toFixed(2)}x
                       </div>
                     </div>
                     <div>
-                      <div className="text-sm text-[var(--text-secondary)]">Win Chance</div>
-                      <div className="text-3xl font-bold text-[var(--success)]">
+                      <div className="text-xs text-[var(--text-secondary)]">Win Chance</div>
+                      <div className="text-2xl font-bold text-[var(--success)]">
                         {state.winChance.toFixed(1)}%
                       </div>
                     </div>
                     <div>
-                      <div className="text-sm text-[var(--text-secondary)]">Potential Win</div>
-                      <div className="text-3xl font-bold text-[var(--gold)]">
+                      <div className="text-xs text-[var(--text-secondary)]">Potential Win</div>
+                      <div className="text-2xl font-bold text-[var(--gold)]">
                         {(parseFloat(state.betAmount || '0') * state.multiplier).toFixed(4)}
                       </div>
                     </div>
@@ -346,7 +381,7 @@ const UltraDiceRoll: React.FC = () => {
                   whileTap={{ scale: 0.98 }}
                   onClick={handleRoll}
                   disabled={!isConnected || gameState.isPlaying}
-                  className="w-full py-6 px-8 rounded-2xl bg-gradient-to-r from-[var(--accent)] to-[var(--secondary)] hover:from-[var(--accent-hover)] hover:to-[var(--secondary-hover)] disabled:opacity-50 text-white font-black text-2xl transition-all duration-300 shadow-2xl glow-effect relative overflow-hidden"
+                  className="w-full py-4 px-6 rounded-xl bg-gradient-to-r from-[var(--accent)] to-[var(--secondary)] hover:from-[var(--accent-hover)] hover:to-[var(--secondary-hover)] disabled:opacity-50 text-white font-black text-xl transition-all duration-300 shadow-2xl glow-effect relative overflow-hidden"
                 >
                   {gameState.isPlaying ? (
                     <div className="flex items-center justify-center space-x-3">

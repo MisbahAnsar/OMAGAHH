@@ -1,16 +1,30 @@
-import React, { useMemo, useEffect, useState } from 'react';
+import { useMemo, useEffect, useState, useRef } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { Trophy, Users, Wallet, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Activity, Coins, Gamepad2, Clock, Zap } from 'lucide-react';
+import { Trophy, TrendingUp, TrendingDown, Activity, Coins, Gamepad2, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Button } from '../components/ui/button';
 import { useBlockchain, useTransactionStore } from '../hooks/useBlockchain';
+import gsap from 'gsap';
+import Hero from '../components/Hero';
+
+interface GameActivity {
+  game: string;
+  amount: number;
+  result: 'win' | 'loss';
+  timestamp: number;
+}
 
 const Dashboard = () => {
   const { connected, publicKey } = useWallet();
   const { balance } = useBlockchain();
   const { transactions } = useTransactionStore();
   const [liveActivity, setLiveActivity] = useState<any[]>([]);
+  const [recentGames, setRecentGames] = useState<GameActivity[]>([]);
+  
+  // Refs for GSAP animations
+  const headerRef = useRef(null);
+  const statsRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const activityRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   // Calculate real statistics from transactions
   const stats = useMemo(() => {
@@ -37,69 +51,135 @@ const Dashboard = () => {
     };
   }, [transactions]);
 
-  // Get recent transactions
-  const recentTransactions = useMemo(() => {
-    return transactions
-      .filter(tx => tx.status === 'confirmed' && (tx.type === 'bet' || tx.type === 'win' || tx.type === 'loss'))
-      .slice(0, 5);
-  }, [transactions]);
-
-  // Simulate live activity
+  // Load recent games from localStorage
   useEffect(() => {
-    const interval = setInterval(() => {
+    const loadRecentGames = () => {
+      try {
+        const stored = localStorage.getItem('recentGames');
+        if (stored) {
+          const games = JSON.parse(stored);
+          setRecentGames(games.slice(0, 5)); // Show only last 5
+        }
+      } catch (error) {
+        console.error('Failed to load recent games:', error);
+      }
+    };
+
+    loadRecentGames();
+
+    // Listen for storage changes (when user plays a game)
+    const handleStorageChange = () => {
+      loadRecentGames();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    // Also check every second for updates from same tab
+    const interval = setInterval(loadRecentGames, 1000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Simulate live activity - Keep only 10 items max
+  useEffect(() => {
+    // Initialize with 10 random activities
+    const generateRandomActivity = () => {
+      const games = ['Coin Flip', 'Dice Roll', 'Slots', 'Blackjack', 'Roulette'];
       const events = [
-        { type: 'big_win', user: 'Player***' + Math.floor(Math.random() * 999), amount: Math.random() * 10 + 1, game: 'Coin Flip' },
-        { type: 'new_game', user: 'Player***' + Math.floor(Math.random() * 999), game: 'Dice Roll' },
-        { type: 'big_win', user: 'Player***' + Math.floor(Math.random() * 999), amount: Math.random() * 15 + 2, game: 'Slots' },
+        { type: 'big_win', user: 'Player***' + Math.floor(Math.random() * 999), amount: Math.random() * 10 + 1, game: games[Math.floor(Math.random() * games.length)] },
+        { type: 'new_game', user: 'Player***' + Math.floor(Math.random() * 999), game: games[Math.floor(Math.random() * games.length)] },
+        { type: 'big_win', user: 'Player***' + Math.floor(Math.random() * 999), amount: Math.random() * 15 + 2, game: games[Math.floor(Math.random() * games.length)] },
       ];
       
-      const newEvent = {
+      return {
         ...events[Math.floor(Math.random() * events.length)],
         timestamp: Date.now(),
         id: Math.random().toString(36).substr(2, 9),
       };
+    };
 
-      setLiveActivity(prev => [newEvent, ...prev.slice(0, 4)]);
-    }, 5000);
+    // Initialize with 10 activities
+    const initialActivities = Array.from({ length: 10 }, () => generateRandomActivity());
+    setLiveActivity(initialActivities);
+
+    // Add new activity every 3 seconds, keep only 10
+    const interval = setInterval(() => {
+      const newEvent = generateRandomActivity();
+      setLiveActivity(prev => [newEvent, ...prev.slice(0, 9)]); // Keep only 10 max
+    }, 3000);
 
     return () => clearInterval(interval);
   }, []);
 
+  // GSAP Animations on mount
+  useEffect(() => {
+    if (!connected) return;
+
+    const ctx = gsap.context(() => {
+      // Header animation - from top with blur
+      gsap.fromTo(
+        headerRef.current,
+        { y: -50, opacity: 0, filter: 'blur(10px)' },
+        { y: 0, opacity: 1, filter: 'blur(0px)', duration: 1, ease: 'power3.out' }
+      );
+
+      // Stats cards - from left with blur, staggered
+      statsRefs.current.forEach((ref, index) => {
+        if (ref) {
+          gsap.fromTo(
+            ref,
+            { x: -80, opacity: 0, filter: 'blur(10px)' },
+            { 
+              x: 0, 
+              opacity: 1, 
+              filter: 'blur(0px)', 
+              duration: 1, 
+              delay: 0.2 + index * 0.1,
+              ease: 'power3.out' 
+            }
+          );
+        }
+      });
+
+      // Activity sections - from sides with blur
+      activityRefs.current.forEach((ref, index) => {
+        if (ref) {
+          const fromX = index === 0 ? -100 : 100; // Left for first, right for second
+          gsap.fromTo(
+            ref,
+            { x: fromX, opacity: 0, filter: 'blur(10px)' },
+            { 
+              x: 0, 
+              opacity: 1, 
+              filter: 'blur(0px)', 
+              duration: 1.2, 
+              delay: 0.6,
+              ease: 'power3.out' 
+            }
+          );
+        }
+      });
+
+    });
+
+    return () => ctx.revert();
+  }, [connected]);
+
   if (!connected) {
-    return (
-      <div className="min-h-[80vh] flex items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-center space-y-6 p-8"
-        >
-          <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-r from-[var(--accent)] to-[var(--secondary)] flex items-center justify-center shadow-[0_0_40px_var(--accent-glow)]">
-            <Wallet className="w-10 h-10 text-black" />
-          </div>
-          <div>
-            <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-white to-[var(--accent)] bg-clip-text text-transparent">
-              Connect Your Wallet
-            </h2>
-            <p className="text-[var(--text-secondary)] max-w-md mx-auto">
-              Connect your Solana wallet to access your dashboard and start playing casino games.
-            </p>
-          </div>
-          <Button size="lg" className="mt-4">
-            Get Started
-          </Button>
-        </motion.div>
-      </div>
-    );
+    return <Hero />;
   }
 
   return (
-    <div className="space-y-8 p-6">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0"
-      >
+    <>
+      <Hero />
+      <div className="space-y-8 p-6">
+        {/* Header */}
+        <div
+          ref={headerRef}
+          className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0"
+        >
         <div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-[var(--accent)] to-white bg-clip-text text-transparent">
             Welcome Back!
@@ -111,7 +191,7 @@ const Dashboard = () => {
         <div className="flex items-center space-x-4">
           <Card className="bg-gradient-to-r from-[var(--accent)]/10 to-[var(--secondary)]/10 border-[var(--accent)]/30">
             <CardContent className="p-4 flex items-center space-x-3">
-              <Wallet className="w-6 h-6 text-[var(--accent)]" />
+              <Coins className="w-6 h-6 text-[var(--accent)]" />
               <div>
                 <p className="text-sm text-[var(--text-secondary)]">Your Balance</p>
                 <p className="text-xl font-bold">{balance?.toFixed(4) || '0.0000'} SOL</p>
@@ -119,15 +199,11 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
-      </motion.div>
+      </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
+        <div ref={el => statsRefs.current[0] = el}>
           <Card className="hover:shadow-[0_0_30px_var(--accent-glow)] transition-all">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-[var(--text-secondary)]">
@@ -143,13 +219,9 @@ const Dashboard = () => {
               </p>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
+        <div ref={el => statsRefs.current[1] = el}>
           <Card className="hover:shadow-[0_0_30px_var(--info-glow)] transition-all">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-[var(--text-secondary)]">
@@ -164,13 +236,9 @@ const Dashboard = () => {
               </p>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
+        <div ref={el => statsRefs.current[2] = el}>
           <Card className="hover:shadow-[0_0_30px_var(--success-glow)] transition-all">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-[var(--text-secondary)]">
@@ -185,13 +253,9 @@ const Dashboard = () => {
               </p>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
+        <div ref={el => statsRefs.current[3] = el}>
           <Card className="hover:shadow-[0_0_30px_var(--secondary-glow)] transition-all">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-[var(--text-secondary)]">
@@ -206,78 +270,99 @@ const Dashboard = () => {
               </p>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
       </div>
 
       {/* Recent Activity & Live Feed */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Transactions */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.5 }}
-        >
+        {/* Wins vs Losses Chart */}
+        <div ref={el => activityRefs.current[0] = el}>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <Clock className="w-5 h-5 mr-2 text-[var(--accent)]" />
-                Recent Activity
+                <TrendingUp className="w-5 h-5 mr-2 text-[var(--accent)]" />
+                Wins vs Losses
               </CardTitle>
-              <CardDescription>Your latest game transactions</CardDescription>
+              <CardDescription>Your performance overview</CardDescription>
             </CardHeader>
-            <CardContent>
-              {recentTransactions.length > 0 ? (
-                <div className="space-y-4">
-                  {recentTransactions.map((tx, index) => (
-                    <motion.div
-                      key={tx.signature}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className="flex items-center justify-between p-3 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:border-[var(--accent)]/30 transition-colors"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className={`p-2 rounded-lg ${tx.type === 'win' ? 'bg-green-500/10' : tx.type === 'loss' ? 'bg-red-500/10' : 'bg-blue-500/10'}`}>
-                          {tx.type === 'win' ? (
-                            <ArrowUpRight className="w-4 h-4 text-green-400" />
-                          ) : tx.type === 'loss' ? (
-                            <ArrowDownRight className="w-4 h-4 text-red-400" />
-                          ) : (
-                            <Coins className="w-4 h-4 text-blue-400" />
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">{tx.game || 'Game'}</p>
-                          <p className="text-xs text-[var(--text-secondary)]">
-                            {new Date(tx.timestamp).toLocaleTimeString()}
-                          </p>
-                        </div>
+            <CardContent className="h-[400px]">
+              {recentGames.length > 0 ? (
+                <div className="h-full flex flex-col">
+                  {/* Chart */}
+                  <div className="flex-1 flex items-end space-x-8 px-8 mb-6">
+                    {/* Wins Bar */}
+                    <div className="flex-1 flex flex-col items-center">
+                      <div className="w-full bg-[var(--background)] rounded-t-xl overflow-hidden relative" style={{ height: '280px' }}>
+                        <motion.div
+                          key={`wins-${recentGames.filter(g => g.result === 'win').length}`}
+                          initial={{ height: 0 }}
+                          animate={{ 
+                            height: `${Math.min(100, (recentGames.filter(g => g.result === 'win').length / recentGames.length) * 100)}%` 
+                          }}
+                          transition={{ duration: 1, ease: 'easeOut' }}
+                          className="absolute bottom-0 w-full bg-gradient-to-t from-green-500 to-green-400 rounded-t-xl flex items-end justify-center pb-4"
+                        >
+                          <span className="text-2xl font-bold text-white">
+                            {recentGames.filter(g => g.result === 'win').length}
+                          </span>
+                        </motion.div>
                       </div>
-                      <div className="text-right">
-                        <p className={`font-semibold ${tx.type === 'win' ? 'text-green-400' : tx.type === 'loss' ? 'text-red-400' : 'text-[var(--text-primary)]'}`}>
-                          {tx.type === 'win' ? '+' : tx.type === 'loss' ? '-' : ''}{tx.amount.toFixed(4)} SOL
+                      <div className="mt-3 text-center">
+                        <p className="text-sm font-semibold text-green-400">Wins</p>
+                        <p className="text-xs text-[var(--text-secondary)]">
+                          {recentGames.length > 0 ? ((recentGames.filter(g => g.result === 'win').length / recentGames.length) * 100).toFixed(1) : '0.0'}%
                         </p>
                       </div>
-                    </motion.div>
-                  ))}
+                    </div>
+
+                    {/* Losses Bar */}
+                    <div className="flex-1 flex flex-col items-center">
+                      <div className="w-full bg-[var(--background)] rounded-t-xl overflow-hidden relative" style={{ height: '280px' }}>
+                        <motion.div
+                          key={`losses-${recentGames.filter(g => g.result === 'loss').length}`}
+                          initial={{ height: 0 }}
+                          animate={{ 
+                            height: `${Math.min(100, (recentGames.filter(g => g.result === 'loss').length / recentGames.length) * 100)}%` 
+                          }}
+                          transition={{ duration: 1, ease: 'easeOut' }}
+                          className="absolute bottom-0 w-full bg-gradient-to-t from-red-500 to-red-400 rounded-t-xl flex items-end justify-center pb-4"
+                        >
+                          <span className="text-2xl font-bold text-white">
+                            {recentGames.filter(g => g.result === 'loss').length}
+                          </span>
+                        </motion.div>
+                      </div>
+                      <div className="mt-3 text-center">
+                        <p className="text-sm font-semibold text-red-400">Losses</p>
+                        <p className="text-xs text-[var(--text-secondary)]">
+                          {recentGames.length > 0 ? ((recentGames.filter(g => g.result === 'loss').length / recentGames.length) * 100).toFixed(1) : '0.0'}%
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Note */}
+                  <div className="text-center mt-auto pt-4 border-t border-[var(--border)]">
+                    <p className="text-xs text-[var(--text-secondary)] italic">
+                      Note: Stats are cleared when page is refreshed
+                    </p>
+                  </div>
                 </div>
               ) : (
-                <div className="text-center py-8 text-[var(--text-secondary)]">
-                  <Gamepad2 className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>No recent activity</p>
-                  <p className="text-sm mt-1">Start playing to see your game history!</p>
+                <div className="h-full flex items-center justify-center text-center text-[var(--text-secondary)]">
+                  <div>
+                    <TrendingUp className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No games played yet</p>
+                    <p className="text-sm mt-1">Start playing to see your stats!</p>
+                  </div>
                 </div>
               )}
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
 
         {/* Live Activity Feed */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.5 }}
-        >
+        <div ref={el => activityRefs.current[1] = el}>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -288,22 +373,23 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               {liveActivity.length > 0 ? (
-                <div className="space-y-3">
-                  {liveActivity.map((event, index) => (
-                    <motion.div
-                      key={event.id}
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-[var(--accent)]/5 to-transparent border border-[var(--border)]"
-                    >
+                <div className="h-[400px] p-3 border-2 border-[var(--accent)]/30 rounded-xl bg-[var(--background)]/50 overflow-y-auto scroll-smooth">
+                  <div className="space-y-3 pr-2">
+                    {liveActivity.map((event) => (
+                      <motion.div
+                        key={event.id}
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-[var(--accent)]/5 to-transparent border-2 border-[var(--border)] hover:border-[var(--accent)]/50 hover:bg-[var(--accent)]/10 transition-all duration-300 shadow-md hover:shadow-lg hover:shadow-[var(--accent-glow)]"
+                      >
                       <div className="flex items-center space-x-3">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[var(--accent)] to-[var(--secondary)] flex items-center justify-center text-xs font-bold text-black">
                           {event.user.slice(-3)}
                         </div>
                         <div>
                           <p className="text-sm font-medium">
-                            {event.type === 'big_win' && `🎉 ${event.user} won big!`}
-                            {event.type === 'new_game' && `🎮 ${event.user} is playing`}
+                            {event.type === 'big_win' && `${event.user} won big!`}
+                            {event.type === 'new_game' && `${event.user} is playing`}
                           </p>
                           <p className="text-xs text-[var(--text-secondary)]">{event.game}</p>
                         </div>
@@ -315,8 +401,9 @@ const Dashboard = () => {
                           </p>
                         </div>
                       )}
-                    </motion.div>
-                  ))}
+                      </motion.div>
+                    ))}
+                  </div>
                 </div>
               ) : (
                 <div className="text-center py-8 text-[var(--text-secondary)]">
@@ -326,40 +413,36 @@ const Dashboard = () => {
               )}
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
       </div>
 
-      {/* Quick Actions */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
-      >
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Jump into your favorite games</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Button size="lg" className="w-full" onClick={() => window.location.href = '/games'}>
-                <Gamepad2 className="w-5 h-5 mr-2" />
-                Play Games
-              </Button>
-              <Button size="lg" variant="outline" className="w-full" onClick={() => window.location.href = '/create'}>
-                <Coins className="w-5 h-5 mr-2" />
-                Create Casino
-              </Button>
-              <Button size="lg" variant="outline" className="w-full" onClick={() => window.location.href = '/about'}>
-                <Trophy className="w-5 h-5 mr-2" />
-                View Leaderboard
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
-    </div>
+      </div>
+    </>
   );
+};
+
+// Helper function to save game activity to localStorage
+export const saveGameActivity = (game: string, amount: number, result: 'win' | 'loss') => {
+  try {
+    const stored = localStorage.getItem('recentGames');
+    const games: GameActivity[] = stored ? JSON.parse(stored) : [];
+    
+    const newGame: GameActivity = {
+      game,
+      amount,
+      result,
+      timestamp: Date.now(),
+    };
+    
+    // Add to beginning and keep only last 50
+    const updated = [newGame, ...games].slice(0, 50);
+    localStorage.setItem('recentGames', JSON.stringify(updated));
+    
+    // Trigger storage event for other tabs/windows
+    window.dispatchEvent(new Event('storage'));
+  } catch (error) {
+    console.error('Failed to save game activity:', error);
+  }
 };
 
 export default Dashboard;

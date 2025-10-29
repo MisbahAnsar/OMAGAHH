@@ -69,51 +69,6 @@ const GAME_CARDS: GameCard[] = [
     gradient: 'from-green-500 via-emerald-500 to-teal-500',
     bgImage: '/images/slots-bg.jpg',
     features: ['Progressive Jackpot', 'Bonus Rounds', 'Free Spins'],
-    isNew: true,
-  },
-  {
-    id: 'blackjack',
-    title: 'Ultra Blackjack',
-    description: 'Beat the dealer with perfect strategy and card counting hints',
-    icon: Heart,
-    path: '/blackjack',
-    difficulty: 'Hard',
-    minBet: 0.1,
-    maxPayout: '2.5x',
-    players: 634,
-    gradient: 'from-gray-700 via-gray-800 to-black',
-    bgImage: '/images/blackjack-bg.jpg',
-    features: ['Strategy Hints', 'Card Counting', 'Side Bets'],
-    comingSoon: true,
-  },
-  {
-    id: 'roulette',
-    title: 'Ultra Roulette',
-    description: 'European roulette with advanced betting options and statistics',
-    icon: Target,
-    path: '/roulette',
-    difficulty: 'Medium',
-    minBet: 0.01,
-    maxPayout: '35x',
-    players: 445,
-    gradient: 'from-red-600 via-red-700 to-red-900',
-    bgImage: '/images/roulette-bg.jpg',
-    features: ['European Rules', 'Advanced Bets', 'Hot Numbers'],
-    comingSoon: true,
-  },
-  {
-    id: 'poker',
-    title: 'Ultra Poker',
-    description: 'Texas Hold\'em with AI opponents and tournament modes',
-    icon: Crown,
-    path: '/poker',
-    difficulty: 'Hard',
-    minBet: 0.5,
-    maxPayout: '1000x',
-    players: 1823,
-    gradient: 'from-purple-600 via-purple-700 to-indigo-800',
-    bgImage: '/images/poker-bg.jpg',
-    features: ['AI Opponents', 'Tournaments', 'Bluff Detection'],
     comingSoon: true,
   },
 ];
@@ -205,27 +160,26 @@ const GameSelector3D: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-12"
         >
-          <div className="flex items-center justify-center mb-6">
-            <motion.div
-              animate={{ rotate: [0, 360] }}
-              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              className="mr-4"
-            >
-              <Sparkles className="w-16 h-16 text-[var(--gold)]" />
-            </motion.div>
-            <h1 className="text-7xl font-black gradient-text">
-              GAME UNIVERSE
-            </h1>
-            <motion.div
-              animate={{ rotate: [360, 0] }}
-              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              className="ml-4"
-            >
-              <Crown className="w-16 h-16 text-[var(--gold)]" />
-            </motion.div>
-          </div>
+          <h1 
+            className="gradient-text mb-6"
+            style={{
+              fontFamily: '"Edu NSW ACT Foundation", cursive',
+              fontSize: 'clamp(40px, 7vw, 70px)',
+              fontWeight: 500,
+              lineHeight: '1.1',
+            }}
+          >
+            Game Universe
+          </h1>
 
-          <p className="text-2xl text-[var(--text-secondary)] max-w-4xl mx-auto mb-8">
+          <p 
+            className="text-[var(--text-secondary)] max-w-4xl mx-auto mb-8"
+            style={{
+              fontFamily: '"Inter", sans-serif',
+              fontSize: 'clamp(16px, 2.5vw, 20px)',
+              lineHeight: '1.6',
+            }}
+          >
             Enter a world of next-generation gaming with stunning 3D graphics,
             provably fair mechanics, and life-changing jackpots
           </p>
@@ -280,12 +234,14 @@ const GameSelector3D: React.FC = () => {
                 className="group relative z-10 game-card"
               >
                 {/* Card Container */}
-                <div className="relative h-[540px] rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br from-[var(--card)] via-[var(--card)] to-[var(--background)] border border-[var(--border)] group-hover:border-[var(--accent)]/50 transition-all duration-300">
-                  {/* Top Gradient Bar */}
-                  <div className={`absolute top-0 left-0 right-0 h-2 bg-gradient-to-r ${game.gradient}`} />
+                <div className={`relative h-[540px] rounded-2xl overflow-hidden shadow-2xl border transition-all duration-300 ${
+                  game.comingSoon 
+                    ? 'bg-gradient-to-br from-gray-900/80 via-gray-800/60 to-gray-900/80 border-yellow-500/30 group-hover:border-yellow-500/50' 
+                    : 'bg-gradient-to-br from-[var(--card)] via-[var(--card)] to-[var(--background)] border-[var(--border)] group-hover:border-[var(--accent)]/50'
+                }`}>
 
                   {/* Background Gradient Accent */}
-                  <div className={`absolute top-0 right-0 w-64 h-64 bg-gradient-to-br ${game.gradient} opacity-5 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2 group-hover:opacity-10 transition-opacity duration-500`} />
+                  <div className={`absolute top-0 right-0 w-64 h-64 bg-gradient-to-br ${game.comingSoon ? 'from-yellow-500 to-orange-500' : game.gradient} ${game.comingSoon ? 'opacity-3' : 'opacity-5'} blur-3xl rounded-full -translate-y-1/2 translate-x-1/2 group-hover:opacity-10 transition-opacity duration-500`} />
 
                   {/* Content */}
                   <div className="relative h-full flex flex-col p-6 pt-8">
@@ -300,7 +256,17 @@ const GameSelector3D: React.FC = () => {
                           </div>
 
                           <div>
-                            <h3 className="text-2xl font-bold text-white mb-1 tracking-tight">{game.title}</h3>
+                            <h3 
+                              className="text-white mb-1"
+                              style={{
+                                fontFamily: '"Edu NSW ACT Foundation", cursive',
+                                fontSize: '24px',
+                                fontWeight: 500,
+                                lineHeight: '1.2',
+                              }}
+                            >
+                              {game.title}
+                            </h3>
                             <div className="flex items-center space-x-2">
                               <div className={`px-3 py-1 rounded-lg text-xs font-bold ${getDifficultyColor(game.difficulty)}`}>
                                 {game.difficulty}
@@ -391,9 +357,7 @@ const GameSelector3D: React.FC = () => {
                     {/* Action Area */}
                     <div className="mt-auto">
                       {game.comingSoon ? (
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
+                        <button
                           disabled
                           className="w-full py-4 rounded-xl bg-gradient-to-r from-gray-700 to-gray-800 border border-gray-600 text-gray-400 font-bold text-base cursor-not-allowed relative overflow-hidden"
                         >
@@ -401,7 +365,7 @@ const GameSelector3D: React.FC = () => {
                             <Clock className="w-5 h-5" />
                             <span>Coming Soon</span>
                           </div>
-                        </motion.button>
+                        </button>
                       ) : (
                         <div className="space-y-3">
                           {/* Warning for non-connected */}
@@ -418,7 +382,7 @@ const GameSelector3D: React.FC = () => {
                               to={game.path}
                               className={`block w-full py-4 rounded-xl font-bold text-lg text-center transition-all duration-300 relative overflow-hidden ${
                                 connected 
-                                  ? `bg-gradient-to-r ${game.gradient} hover:shadow-[0_0_30px] hover:shadow-[var(--accent-glow)] text-white` 
+                                  ? 'bg-[var(--accent)] hover:shadow-[0_0_30px] hover:shadow-[var(--accent-glow)] text-white' 
                                   : 'bg-[var(--card-hover)] hover:bg-[var(--card)] text-[var(--text-primary)] border-2 border-[var(--border)] hover:border-[var(--accent)]'
                               }`}
                             >
@@ -467,45 +431,6 @@ const GameSelector3D: React.FC = () => {
           </AnimatePresence>
         </motion.div>
 
-        {/* Bottom CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-          className="text-center mt-16"
-        >
-          <div className="glass-effect rounded-3xl p-8 max-w-4xl mx-auto">
-            <h2 className="text-4xl font-bold gradient-text mb-4">
-              Ready to Win Big?
-            </h2>
-            <p className="text-xl text-[var(--text-secondary)] mb-8">
-              Join thousands of players and experience the future of online gaming
-            </p>
-            <div className="flex items-center justify-center space-x-6">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-8 py-4 rounded-2xl bg-gradient-to-r from-[var(--accent)] to-[var(--secondary)] text-white font-bold text-lg shadow-2xl"
-              >
-                <div className="flex items-center space-x-2">
-                  <Trophy className="w-6 h-6" />
-                  <span>Join Tournament</span>
-                </div>
-              </motion.button>
-
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-8 py-4 rounded-2xl bg-[var(--card)] border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text-primary)] font-bold text-lg transition-all"
-              >
-                <div className="flex items-center space-x-2">
-                  <Gem className="w-6 h-6" />
-                  <span>VIP Program</span>
-                </div>
-              </motion.button>
-            </div>
-          </div>
-        </motion.div>
       </div>
     </div>
   );

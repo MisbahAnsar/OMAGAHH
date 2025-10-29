@@ -130,7 +130,7 @@ global.fetch = jest.fn();
 
 // Mock environment variables
 process.env.REACT_APP_SOLANA_RPC_URL = 'https://api.devnet.solana.com';
-process.env.REACT_APP_CASINO_PROGRAM_ID = '11111111111111111111111111111111';
+process.env.REACT_APP_CASINO_PROGRAM_ID = '8zD2fbTQHQRkdQrNs1f7Sd1ApZaUqN5c9GGZ6tSSy62M';
 process.env.REACT_APP_WS_URL = 'ws://localhost:3000';
 
 // Setup MSW
